@@ -1,0 +1,212 @@
+@baseUrl = http://localhost:3000
+@email = mouhamadoubah97@gmail.com
+@password = password123
+@newPassword = newpassword123
+
+### 1. Register User
+# @name register
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Rest Client User",
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### 1.1 Verify Email (New)
+# @name verifyEmail
+# Replace TOKEN with the token from the email or database
+@verifyToken = TOKEN
+GET {{baseUrl}}/auth/verify-email?token={{verifyToken}}
+
+### 2. Login User
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjksImVtYWlsIjoibW91aGFtYWRvdWJhaDk3QGdtYWlsLmNvbSIsImlhdCI6MTc2NjExMzUzNSwiZXhwIjoxNzY2MTE3MTM1fQ.mc6xN0-a1TMD-jv7GHKJyEIyKe-Gt275KaHqoi66sNs
+
+### 3. Get Profile (Protected)
+# Needs user controller endpoint for profile, or any protected route.
+# For now reusing change-password as a connectivity test if no other protected route exists easily.
+# Ideally we would have GET /user/profile. Let's try GET /user (if implemented to list users) or just skip to 4.
+# Assuming GET /user is protected or similar for testing guards.
+# Actually, let's just stick to the implemented auth endpoints.
+
+### 4. Forgot Password
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### 5. Reset Password
+# You need to manually copy the token from the console output after running functionality 3.
+@resetToken = 29c08c19772aa5f315cf8479aa609aea3799f3da09fa6d16746fa8f8efe2f69c
+
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "{{resetToken}}",
+  "newPassword": "{{newPassword}}"
+}
+
+### 6. Change Password (Authenticated)
+POST {{baseUrl}}/auth/change-password
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "oldPassword": "{{password}}",
+  "newPassword": "{{newPassword}}"
+}
+
+### 7. Login with New Password
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{newPassword}}"
+}
+
+# --------------------------
+# ROUTINES
+# --------------------------
+
+### 8. Create Routine
+POST {{baseUrl}}/routines
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "Morning Routine",
+  "startDate": "2024-01-01",
+  "tasks": [
+    {
+      "title": "Drink Water",
+      "time": "07:00",
+      "recurrence": "daily"
+    },
+    {
+      "title": "Exercise",
+      "time": "07:15",
+      "recurrence": "daily"
+    }
+  ]
+}
+
+### 9. Get Active Routine
+GET {{baseUrl}}/routines/active
+Authorization: Bearer {{authToken}}
+
+### 10. Check Task
+# Replace 1 with actual task ID from previous response
+@taskId = 1
+POST {{baseUrl}}/routines/tasks/{{taskId}}/check
+Authorization: Bearer {{authToken}}
+
+### 11. Uncheck Task
+POST {{baseUrl}}/routines/tasks/{{taskId}}/uncheck
+Authorization: Bearer {{authToken}}
+
+### 12. Archive Routine
+# Replace 1 with actual routine ID
+@routineId = 1
+PATCH {{baseUrl}}/routines/{{routineId}}/archive
+Authorization: Bearer {{authToken}}
+
+### 13. Get All Routines
+GET {{baseUrl}}/routines
+Authorization: Bearer {{authToken}}
+
+
+# --------------------------
+# TASKS (One-off)
+# --------------------------
+
+### 14. Create Task
+POST {{baseUrl}}/tasks
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "title": "Buy Groceries",
+  "description": "Milk, Eggs, Bread",
+  "dueDate": "2024-12-25"
+}
+
+### 15. Get All Tasks
+GET {{baseUrl}}/tasks
+Authorization: Bearer {{authToken}}
+
+### 16. Complete Task
+# Replace 1 with actual task ID
+@oneOffTaskId = 1
+PATCH {{baseUrl}}/tasks/{{oneOffTaskId}}/complete
+Authorization: Bearer {{authToken}}
+
+
+# --------------------------
+# JOURNAL
+# --------------------------
+
+### 17. Create Journal Entry
+POST {{baseUrl}}/journal
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "learned": "NestJS Controllers",
+  "wellDone": "Implemented Routes",
+  "toImprove": "Testing coverage"
+}
+
+### 18. Get Journal Entries
+GET {{baseUrl}}/journal
+Authorization: Bearer {{authToken}}
+
+
+# --------------------------
+# BUDGET
+# --------------------------
+
+### 19. Create Account
+POST {{baseUrl}}/budget/accounts
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "Main Bank",
+  "type": "checking",
+  "balance": 1000
+}
+
+### 20. Get Accounts
+GET {{baseUrl}}/budget/accounts
+Authorization: Bearer {{authToken}}
+
+### 21. Create Transaction
+POST {{baseUrl}}/budget/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "accountId": 1,
+  "type": "EXPENSE",
+  "amount": 50,
+  "category": "Food",
+  "description": "Lunch"
+}
+
+### 22. Get Transactions
+GET {{baseUrl}}/budget/transactions
+Authorization: Bearer {{authToken}}
