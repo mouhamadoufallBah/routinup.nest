@@ -13,24 +13,24 @@ export class JournalService {
         private journalRepository: Repository<JournalEntry>,
     ) { }
 
-    async create(user: User, createJournalDto: CreateJournalDto) {
+    async create(user: any, createJournalDto: CreateJournalDto) {
         const entry = this.journalRepository.create({
             ...createJournalDto,
-            user,
+            user: { id: user.userId } as any,
         });
         return this.journalRepository.save(entry);
     }
 
-    async findAll(user: User) {
+    async findAll(user: any) {
         return this.journalRepository.find({
-            where: { user: { id: user.id } },
+            where: { user: { id: user.userId } },
             order: { date: 'DESC' }
         });
     }
 
-    async findOne(id: number, user: User) {
+    async findOne(id: number, user: any) {
         const entry = await this.journalRepository.findOne({
-            where: { id, user: { id: user.id } }
+            where: { id, user: { id: user.userId } }
         });
         if (!entry) {
             throw new NotFoundException(`Journal entry #${id} not found`);
@@ -38,13 +38,13 @@ export class JournalService {
         return entry;
     }
 
-    async update(id: number, user: User, updateJournalDto: UpdateJournalDto) {
+    async update(id: number, user: any, updateJournalDto: UpdateJournalDto) {
         const entry = await this.findOne(id, user);
         Object.assign(entry, updateJournalDto);
         return this.journalRepository.save(entry);
     }
 
-    async remove(id: number, user: User) {
+    async remove(id: number, user: any) {
         const entry = await this.findOne(id, user);
         return this.journalRepository.remove(entry);
     }

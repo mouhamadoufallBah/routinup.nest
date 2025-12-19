@@ -17,25 +17,25 @@ export class BudgetService {
     private transactionRepository: Repository<Transaction>,
   ) { }
 
-  createAccount(user: User, createAccountDto: CreateAccountDto) {
+  createAccount(user: any, createAccountDto: CreateAccountDto) {
     const account = this.accountRepository.create({
       ...createAccountDto,
-      user,
+      user: { id: user.userId } as any,
     });
     return this.accountRepository.save(account);
   }
 
-  findAllAccounts(user: User) {
+  findAllAccounts(user: any) {
     return this.accountRepository.find({
-      where: { user: { id: user.id } },
+      where: { user: { id: user.userId } },
     });
   }
 
-  async createTransaction(user: User, createTransactionDto: CreateTransactionDto) {
+  async createTransaction(user: any, createTransactionDto: CreateTransactionDto) {
     const { accountId, amount, type } = createTransactionDto;
 
     const account = await this.accountRepository.findOne({
-      where: { id: accountId, user: { id: user.id } },
+      where: { id: accountId, user: { id: user.userId } },
     });
 
     if (!account) {
@@ -61,9 +61,9 @@ export class BudgetService {
     return this.transactionRepository.save(transaction);
   }
 
-  findAllTransactions(user: User) {
+  findAllTransactions(user: any) {
     return this.transactionRepository.find({
-      where: { account: { user: { id: user.id } } },
+      where: { account: { user: { id: user.userId } } },
       order: { date: 'DESC' },
       relations: ['account'],
     });

@@ -15,10 +15,11 @@ export class RoutinesService {
     private routineRepository: Repository<Routine>,
   ) { }
 
-  async create(user: User, createRoutineDto: CreateRoutineDto) {
+  async create(user: any, createRoutineDto: CreateRoutineDto) {
+    const userId = user.userId;
     // Check if user has an active routine
     const activeRoutine = await this.routineRepository.findOne({
-      where: { user: { id: user.id }, isActive: true },
+      where: { user: { id: userId }, isActive: true },
     });
 
     if (activeRoutine) {
@@ -28,15 +29,15 @@ export class RoutinesService {
     const routine = this.routineRepository.create({
       ...createRoutineDto,
       isActive: true,
-      user,
+      user: { id: userId } as any,
     });
 
     return this.routineRepository.save(routine);
   }
 
-  async findAllActive(user: User) {
+  async findAllActive(user: any) {
     return this.routineRepository.findOne({
-      where: { user: { id: user.id }, isActive: true },
+      where: { user: { id: user.userId }, isActive: true },
       relations: ['tasks'],
     });
   }
@@ -57,9 +58,9 @@ export class RoutinesService {
     return `This action removes a #${id} routine`;
   }
 
-  async archive(id: number, user: User) {
+  async archive(id: number, user: any) {
     const routine = await this.routineRepository.findOne({
-      where: { id, user: { id: user.id } },
+      where: { id, user: { id: user.userId } },
     });
 
     if (!routine) {
@@ -70,12 +71,13 @@ export class RoutinesService {
     return this.routineRepository.save(routine);
   }
 
-  async checkTask(taskId: number, user: User) {
+  async checkTask(taskId: number, user: any) {
     const today = new Date().toISOString().split('T')[0];
 
     // Verify task belongs to user
     const task = await this.routineRepository.manager.findOne(RoutineTask, {
-      where: { id: taskId, routine: { user: { id: user.id } } },
+      where: { id: taskId, routine: { user: { id: user.userId } } },
+      relations: ['routine'],
     });
 
     if (!task) {
@@ -165,12 +167,12 @@ export class RoutinesService {
     return completion;
   }
 
-  async uncheckTask(taskId: number, user: User) {
+  async uncheckTask(taskId: number, user: any) {
     const today = new Date().toISOString().split('T')[0];
 
     // Verify task belongs to user
     const task = await this.routineRepository.manager.findOne(RoutineTask, {
-      where: { id: taskId, routine: { user: { id: user.id } } },
+      where: { id: taskId, routine: { user: { id: user.userId } } },
     });
 
     if (!task) {
