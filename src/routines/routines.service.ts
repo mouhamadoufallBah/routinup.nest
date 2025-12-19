@@ -43,19 +43,31 @@ export class RoutinesService {
   }
 
   findAll() {
-    return `This action returns all routines`;
+    return this.routineRepository.find({
+      relations: ['tasks'],
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} routine`;
+  async findOne(id: number) {
+    const routine = await this.routineRepository.findOne({
+      where: { id },
+      relations: ['tasks'],
+    });
+    if (!routine) {
+      throw new BadRequestException(`Routine #${id} not found`);
+    }
+    return routine;
   }
 
-  update(id: number, updateRoutineDto: UpdateRoutineDto) {
-    return `This action updates a #${id} routine`;
+  async update(id: number, updateRoutineDto: UpdateRoutineDto) {
+    const routine = await this.findOne(id);
+    Object.assign(routine, updateRoutineDto);
+    return this.routineRepository.save(routine);
   }
 
   async remove(id: number) {
-    return `This action removes a #${id} routine`;
+    const routine = await this.findOne(id);
+    return this.routineRepository.remove(routine);
   }
 
   async archive(id: number, user: any) {

@@ -2,6 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { User } from './../src/user/entities/user.entity';
+import { DataSource } from 'typeorm';
+
 
 describe('Comprehensive API Test (e2e)', () => {
     let app: INestApplication;
@@ -33,6 +37,10 @@ describe('Comprehensive API Test (e2e)', () => {
     });
 
     afterAll(async () => {
+        const dataSource = app.get(DataSource);
+        if (dataSource && dataSource.isInitialized) {
+            await dataSource.destroy();
+        }
         await app.close();
     });
 
@@ -45,7 +53,7 @@ describe('Comprehensive API Test (e2e)', () => {
                 .then(async (res) => {
                     expect(res.body).toHaveProperty('email', testUser.email);
                     // Manually verify user since we can't easily get the email token here
-                    const userRepository = app.get('UserRepository');
+                    const userRepository = app.get(getRepositoryToken(User));
                     await userRepository.update({ email: testUser.email }, { isVerified: true });
                 });
         });
@@ -113,6 +121,40 @@ describe('Comprehensive API Test (e2e)', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .expect(201);
         });
+
+        it('/routines (GET)', () => {
+            return request(app.getHttpServer())
+                .get('/routines')
+                .set('Authorization', `Bearer ${token}`)
+                .expect(200)
+                .then(res => {
+                    expect(Array.isArray(res.body)).toBe(true);
+                });
+        });
+
+        it('/routines/:id (GET)', () => {
+            return request(app.getHttpServer())
+                .get(`/routines/${routineId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .expect(200)
+                .then(res => {
+                    expect(res.body).toHaveProperty('id', routineId);
+                });
+        });
+
+        it('/routines/:id/archive (PATCH)', () => {
+            return request(app.getHttpServer())
+                .patch(`/routines/${routineId}/archive`)
+                .set('Authorization', `Bearer ${token}`)
+                .expect(200);
+        });
+
+        it('/routines/:id (DELETE)', () => {
+            return request(app.getHttpServer())
+                .delete(`/routines/${routineId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .expect(200);
+        });
     });
 
     describe('Tasks (One-off)', () => {
@@ -145,6 +187,28 @@ describe('Comprehensive API Test (e2e)', () => {
         it('/tasks/:id/complete (PATCH)', () => {
             return request(app.getHttpServer())
                 .patch(`/tasks/${oneOffTaskId}/complete`)
+                .set('Authorization', `Bearer ${token}`)
+                .expect(200);
+        });
+
+        it('/tasks/:id (GET)', () => {
+            return request(app.getHttpServer())
+                .get(`/tasks/${oneOffTaskId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .expect(200);
+        });
+
+        it('/tasks/:id (PATCH)', () => {
+            return request(app.getHttpServer())
+                .patch(`/tasks/${oneOffTaskId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({ title: 'Updated Title' })
+                .expect(200);
+        });
+
+        it('/tasks/:id (DELETE)', () => {
+            return request(app.getHttpServer())
+                .delete(`/tasks/${oneOffTaskId}`)
                 .set('Authorization', `Bearer ${token}`)
                 .expect(200);
         });
@@ -200,6 +264,27 @@ describe('Comprehensive API Test (e2e)', () => {
                     description: 'Lunch'
                 })
                 .expect(201);
+        });
+
+        it('/budget/accounts (GET)', () => {
+            return request(app.getHttpServer())
+                .get('/budget/accounts')
+                .set('Authorization', `Bearer ${token}`)
+                .expect(200)
+                .then(res => {
+                    expect(Array.isArray(res.body)).toBe(true);
+                    expect(res.body.length).toBeGreaterThan(0);
+                });
+        });
+
+        it('/budget/transactions (GET)', () => {
+            return request(app.getHttpServer())
+                .get('/budget/transactions')
+                .set('Authorization', `Bearer ${token}`)
+                .expect(200)
+                .then(res => {
+                    expect(Array.isArray(res.body)).toBe(true);
+                });
         });
     });
 });
