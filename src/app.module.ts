@@ -26,7 +26,7 @@ import { ReportsModule } from './reports/reports.module';
       database: 'routinup',
       // entities: [User],
       autoLoadEntities: true,
-      // synchronize: true,
+      synchronize: true,
     }),
     UserModule,
     AuthModule,
@@ -41,6 +41,6 @@ import { ReportsModule } from './reports/reports.module';
 })
 export class AppModule {
   constructor(private dataSource: DataSource) {
-    // console.log(dataSource.driver.database, 'db connected');
+    console.log(dataSource.driver.database, 'db connected');
   }
 }

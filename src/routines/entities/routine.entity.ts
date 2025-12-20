@@ -13,6 +13,9 @@ export class Routine {
     @Column({ type: 'date' })
     startDate: string;
 
+    @Column({ type: 'date', nullable: true })
+    endDate: string;
+
     @Column({ default: true })
     isActive: boolean;
 

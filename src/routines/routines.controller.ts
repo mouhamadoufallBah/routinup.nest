@@ -43,6 +43,11 @@ export class RoutinesController {
     return this.routinesService.findAll();
   }
 
+  @Get(':id/history')
+  getHistory(@Request() req, @Param('id', ParseIntPipe) id: number) {
+    return this.routinesService.getHistory(id, req.user);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.routinesService.findOne(+id);

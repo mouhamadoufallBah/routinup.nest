@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { CreateRoutineDto } from './dto/create-routine.dto';
 import { UpdateRoutineDto } from './dto/update-routine.dto';
 import { Routine } from './entities/routine.entity';
@@ -36,10 +36,38 @@ export class RoutinesService {
   }
 
   async findAllActive(user: any) {
-    return this.routineRepository.findOne({
+    const today = new Date().toISOString().split('T')[0];
+
+    const routine = await this.routineRepository.findOne({
       where: { user: { id: user.userId }, isActive: true },
       relations: ['tasks'],
     });
+
+    if (!routine) {
+      return null;
+    }
+
+    // Load today's completions for all tasks
+    const tasksWithCompletion = await Promise.all(
+      routine.tasks.map(async (task) => {
+        const completion = await this.routineRepository.manager.findOne(TaskCompletion, {
+          where: {
+            routineTask: { id: task.id },
+            completedAt: Between(new Date(today + ' 00:00:00'), new Date(today + ' 23:59:59'))
+          },
+        });
+
+        return {
+          ...task,
+          isCompletedToday: !!completion,
+        };
+      })
+    );
+
+    return {
+      ...routine,
+      tasks: tasksWithCompletion,
+    };
   }
 
   findAll() {
@@ -98,7 +126,10 @@ export class RoutinesService {
 
     // Check if already completed today
     const existing = await this.routineRepository.manager.findOne(TaskCompletion, {
-      where: { routineTask: { id: taskId }, date: today },
+      where: {
+        routineTask: { id: taskId },
+        completedAt: Between(new Date(today + ' 00:00:00'), new Date(today + ' 23:59:59'))
+      },
     });
 
     if (existing) {
@@ -107,7 +138,7 @@ export class RoutinesService {
 
     const completion = this.routineRepository.manager.create(TaskCompletion, {
       routineTask: task,
-      date: today,
+      completedAt: new Date(),
     });
 
     await this.routineRepository.manager.save(completion);
@@ -123,7 +154,7 @@ export class RoutinesService {
         // Find completion for today
         // Note: t.completions might differ if not loaded with query builder filtering, 
         // but finding in array is acceptable for small task lists
-        const completedToday = t.completions.some(c => c.date === today || new Date(c.date).toISOString().split('T')[0] === today);
+        const completedToday = t.completions.some(c => new Date(c.completedAt).toISOString().split('T')[0] === today);
         return completedToday;
         // Logic gap: The just-added completion might not be in 'routine.tasks' if we rely on standard find relation loading 
         // without refreshing. But TypeORM find should fetch fresh data if we just saved the completion? 
@@ -136,7 +167,10 @@ export class RoutinesService {
         where: { routine: { id: routine.id } }
       });
       const completionCount = await this.routineRepository.manager.count(TaskCompletion, {
-        where: { routineTask: { routine: { id: routine.id } }, date: today }
+        where: {
+          routineTask: { routine: { id: routine.id } },
+          completedAt: Between(new Date(today + ' 00:00:00'), new Date(today + ' 23:59:59'))
+        }
       });
 
       if (taskCount === completionCount + 1 || (taskCount === completionCount)) {
@@ -153,7 +187,10 @@ export class RoutinesService {
       let completedCount = 0;
       for (const t of tasks) {
         const c = await this.routineRepository.manager.findOne(TaskCompletion, {
-          where: { routineTask: { id: t.id }, date: today }
+          where: {
+            routineTask: { id: t.id },
+            completedAt: Between(new Date(today + ' 00:00:00'), new Date(today + ' 23:59:59'))
+          }
         });
         if (c) completedCount++;
       }
@@ -192,7 +229,10 @@ export class RoutinesService {
     }
 
     const completion = await this.routineRepository.manager.findOne(TaskCompletion, {
-      where: { routineTask: { id: taskId }, date: today },
+      where: {
+        routineTask: { id: taskId },
+        completedAt: Between(new Date(today + ' 00:00:00'), new Date(today + ' 23:59:59'))
+      },
     });
 
     if (completion) {
@@ -200,5 +240,56 @@ export class RoutinesService {
     }
 
     return { success: true };
+  }
+
+  async getHistory(id: number, user: any) {
+    const routine = await this.routineRepository.findOne({
+      where: { id, user: { id: user.userId } },
+      relations: ['tasks'],
+    });
+
+    if (!routine) {
+      throw new BadRequestException('Routine not found');
+    }
+
+    const startDate = new Date(routine.startDate);
+    const today = new Date();
+    const history: Array<{
+      date: string;
+      tasksCompleted: number;
+      totalTasks: number;
+      isFullyCompleted: boolean;
+    }> = [];
+
+    // Iterate through each day from start to today
+    for (let date = new Date(startDate); date <= today; date.setDate(date.getDate() + 1)) {
+      const dateStr = date.toISOString().split('T')[0];
+
+      // Count completions for this date
+      const completions = await this.routineRepository.manager.count(TaskCompletion, {
+        where: {
+          routineTask: { routine: { id: routine.id } },
+          completedAt: Between(new Date(dateStr + ' 00:00:00'), new Date(dateStr + ' 23:59:59'))
+        },
+      });
+
+      const totalTasks = routine.tasks.length;
+      const isFullyCompleted = completions === totalTasks && totalTasks > 0;
+
+      history.push({
+        date: dateStr,
+        tasksCompleted: completions,
+        totalTasks,
+        isFullyCompleted,
+      });
+    }
+
+    return {
+      routineId: routine.id,
+      routineName: routine.name,
+      startDate: routine.startDate,
+      currentStreak: routine.streak,
+      history,
+    };
   }
 }
