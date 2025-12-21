@@ -28,6 +28,10 @@ export class CreateRoutineDto {
     @IsDateString()
     startDate: string;
 
+    @ApiProperty({ example: '2025-12-30' })
+    @IsDateString()
+    endDate: string;
+
     @ApiProperty({ type: [CreateRoutineTaskDto] })
     @IsArray()
     @ValidateNested({ each: true })

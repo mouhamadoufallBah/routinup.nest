@@ -81,6 +81,7 @@ describe('Comprehensive API Test (e2e)', () => {
                 .send({
                     name: 'Morning Routine',
                     startDate: '2025-01-01',
+                    endDate: '2025-12-31',
                     tasks: [
                         {
                             title: 'Drink Water',
@@ -95,6 +96,7 @@ describe('Comprehensive API Test (e2e)', () => {
                     routineId = res.body.id;
                     expect(res.body.tasks).toHaveLength(1);
                     taskId = res.body.tasks[0].id;
+                    console.log(`Routine created with ID: ${routineId} and Task ID: ${taskId}`);
                 });
         });
 
