@@ -12,10 +12,6 @@ class CreateRoutineTaskDto {
     @IsString()
     @IsNotEmpty()
     time: string; // HH:MM format
-
-    @ApiProperty({ example: 'DAILY' })
-    @IsString()
-    recurrence: string;
 }
 
 export class CreateRoutineDto {

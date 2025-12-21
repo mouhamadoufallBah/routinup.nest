@@ -86,7 +86,6 @@ describe('Comprehensive API Test (e2e)', () => {
                         {
                             title: 'Drink Water',
                             time: '07:00',
-                            recurrence: 'daily'
                         }
                     ]
                 })

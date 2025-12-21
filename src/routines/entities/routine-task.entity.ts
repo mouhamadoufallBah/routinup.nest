@@ -13,9 +13,6 @@ export class RoutineTask {
     @Column()
     time: string;
 
-    @Column()
-    recurrence: string;
-
     @ManyToOne(() => Routine, (routine) => routine.tasks, { onDelete: 'CASCADE' })
     routine: Routine;
 
